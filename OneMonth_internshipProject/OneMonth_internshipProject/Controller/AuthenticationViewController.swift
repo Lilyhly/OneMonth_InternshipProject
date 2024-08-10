@@ -6,10 +6,14 @@
 //
 
 import UIKit
+import CoreData
 import SnapKit
+
+
 
 class AuthenticationViewController: UIViewController {
 
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     let idTextField = UITextField()
     let passwordTextField = UITextField()
     let loginButton = UIButton(type: .system)
@@ -66,6 +70,78 @@ class AuthenticationViewController: UIViewController {
         signUpButton.snp.makeConstraints { make in
             make.top.equalTo(loginButton.snp.bottom).offset(20)
             make.centerX.equalToSuperview()
+        }
+        func saveUserToCoreData(user: User) {
+            let newUser = NSEntityDescription.insertNewObject(forEntityName: "User", into: context)
+            newUser.setValue(user.id, forKey: "id")
+            newUser.setValue(user.password, forKey: "password")
+            newUser.setValue(user.name, forKey: "name")
+            newUser.setValue(user.phoneNumber, forKey: "phoneNumber")
+            newUser.setValue(user.email, forKey: "email")
+            newUser.setValue(user.birthDate, forKey: "birthDate")
+            
+            do {
+                try context.save()
+                print("User saved successfully")
+            } catch {
+                print("Failed to save user: \(error)")
+            }
+        }
+        func retrieveUserFromCoreData(byID id: String) -> User? {
+            let request = NSFetchRequest<NSFetchRequestResult>(entityName: "User")
+            request.predicate = NSPredicate(format: "id == %@", id)
+            
+            do {
+                if let result = try context.fetch(request).first as? NSManagedObject {
+                    let user = User(
+                        id: result.value(forKey: "id") as! String,
+                        password: result.value(forKey: "password") as! String,
+                        name: result.value(forKey: "name") as! String,
+                        phoneNumber: result.value(forKey: "phoneNumber") as! String,
+                        email: result.value(forKey: "email") as! String,
+                        birthDate: result.value(forKey: "birthDate") as! String
+                    )
+                    return user
+                }
+            } catch {
+                print("Failed to retrieve user: \(error)")
+            }
+            
+            return nil
+        }
+        
+        func updateUserInCoreData(user: User) {
+            let request = NSFetchRequest<NSFetchRequestResult>(entityName: "User")
+            request.predicate = NSPredicate(format: "id == %@", user.id)
+            
+            do {
+                if let result = try context.fetch(request).first as? NSManagedObject {
+                    result.setValue(user.password, forKey: "password")
+                    result.setValue(user.name, forKey: "name")
+                    result.setValue(user.phoneNumber, forKey: "phoneNumber")
+                    result.setValue(user.email, forKey: "email")
+                    result.setValue(user.birthDate, forKey: "birthDate")
+                    
+                    try context.save()
+                    print("User updated successfully")
+                }
+            } catch {
+                print("Failed to update user: \(error)")
+            }
+        }
+        func deleteUserFromCoreData(byID id: String) {
+            let request = NSFetchRequest<NSFetchRequestResult>(entityName: "User")
+            request.predicate = NSPredicate(format: "id == %@", id)
+            
+            do {
+                if let result = try context.fetch(request).first as? NSManagedObject {
+                    context.delete(result)
+                    try context.save()
+                    print("User deleted successfully")
+                }
+            } catch {
+                print("Failed to delete user: \(error)")
+            }
         }
     }
 
